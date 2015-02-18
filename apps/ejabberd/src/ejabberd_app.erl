@@ -41,11 +41,11 @@
 start(normal, _Args) ->
     ejabberd_loglevel:init(),
     ejabberd_loglevel:set(4),
+    notify_fips_mode(),
     write_pid_file(),
     db_init(),
     xml:start(),
     application:start(p1_cache_tab),
-
     load_drivers([tls_drv, expat_erl]),
     translate:start(),
     acl:start(),
@@ -237,4 +237,12 @@ load_drivers([Driver | Rest]) ->
             ?CRITICAL_MSG("unable to load driver 'expat_erl': ~s",
                           [erl_ddll:format_error(Reason)]),
             exit({driver_loading_failed, Driver, Reason})
+    end.
+
+notify_fips_mode() ->
+    case erlang:function_exported(crypto, info_fips, 0) of
+        true ->
+            ?WARNING_MSG("fips mode ~p~n", [crypto:info_fips()]);
+        _ ->
+            ok
     end.
