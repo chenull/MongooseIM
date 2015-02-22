@@ -70,7 +70,7 @@
          password = <<"">>                            :: binary(),
          uid = <<"">>                                 :: binary(),
          deref_aliases = never                        :: never | searching |
-         finding | always,
+                                                         finding | always,
          group_attr = <<"">>                          :: binary(),
          group_desc = <<"">>                          :: binary(),
          user_desc = <<"">>                           :: binary(),
@@ -122,7 +122,7 @@ get_user_roster(Items, {U, S} = US) ->
                       {ok, _GroupNames} ->
                           {Item#roster{subscription = both, ask = none},
                            dict:erase(US1, SRUsers1)};
-                      error ->
+                       error ->
                           {Item, SRUsers1}
                   end
           end,
@@ -157,7 +157,7 @@ get_subscription_lists({F, T, P}, User, Server) ->
     US = {LUser, LServer},
     DisplayedGroups = get_user_displayed_groups(US),
     SRUsers = lists:usort(lists:flatmap(fun (Group) ->
-                                                get_group_users(LServer, Group)
+                                            get_group_users(LServer, Group)
                                         end,
                                         DisplayedGroups)),
     SRJIDs = [{U1, S1, <<"">>} || {U1, S1} <- SRUsers],
@@ -194,7 +194,7 @@ process_subscription(Direction, User, Server, JID, _Type, Acc) ->
     DisplayedGroups = get_user_displayed_groups(US),
     SRUsers = lists:usort(lists:flatmap(
                             fun (Group) ->
-                                    get_group_users(LServer, Group)
+                                get_group_users(LServer, Group)
                             end,
                             DisplayedGroups)),
     case lists:member(US1, SRUsers) of
@@ -263,19 +263,20 @@ handle_info(_Info, State) -> {noreply, State}.
 
 terminate(_Reason, State) ->
     Host = State#state.host,
-    ejabberd_hooks:delete(host_config_update, Host, ?MODULE, config_change, 50),
+    ejabberd_hooks:delete(host_config_update, Host, ?MODULE,
+                          config_change, 50),
     ejabberd_hooks:delete(roster_get, Host, ?MODULE,
                           get_user_roster, 70),
-    ejabberd_hooks:delete(roster_in_subscription, Host,
-                          ?MODULE, in_subscription, 30),
-    ejabberd_hooks:delete(roster_out_subscription, Host,
-                          ?MODULE, out_subscription, 30),
-    ejabberd_hooks:delete(roster_get_subscription_lists,
-                          Host, ?MODULE, get_subscription_lists, 70),
-    ejabberd_hooks:delete(roster_get_jid_info, Host,
-                          ?MODULE, get_jid_info, 70),
-    ejabberd_hooks:delete(roster_process_item, Host,
-                          ?MODULE, process_item, 50).
+    ejabberd_hooks:delete(roster_in_subscription, Host, ?MODULE,
+                          in_subscription, 30),
+    ejabberd_hooks:delete(roster_out_subscription, Host, ?MODULE,
+                          out_subscription, 30),
+    ejabberd_hooks:delete(roster_get_subscription_lists, Host, ?MODULE,
+                          get_subscription_lists, 70),
+    ejabberd_hooks:delete(roster_get_jid_info, Host, ?MODULE,
+                          get_jid_info, 70),
+    ejabberd_hooks:delete(roster_process_item, Host, ?MODULE,
+                          process_item, 50).
 
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
@@ -293,14 +294,14 @@ get_user_to_groups_map({_, Server} = US, SkipUS) ->
     %% Eldap server ID and base DN for the query are both retrieved from the State
     %% record.
     lists:foldl(fun (Group, Dict1) ->
-                        GroupName = get_group_name(Server, Group),
-                        lists:foldl(fun (Contact, Dict) ->
-                                            if
-                                                SkipUS, Contact == US -> Dict;
-                                                true -> dict:append(Contact, GroupName, Dict)
-                                            end
-                                    end,
-                                    Dict1, get_group_users(Server, Group))
+                    GroupName = get_group_name(Server, Group),
+                    lists:foldl(fun (Contact, Dict) ->
+                                    if
+                                        SkipUS, Contact == US -> Dict;
+                                        true -> dict:append(Contact, GroupName, Dict)
+                                    end
+                                end,
+                                Dict1, get_group_users(Server, Group))
                 end,
                 dict:new(), DisplayedGroups).
 
@@ -321,7 +322,7 @@ eldap_search(State, FilterParseArgs, AttributesList) ->
                     %% Something else. Pretend we got no results.
                     []
             end;
-        _->
+        _ ->
             %% Filter parsing failed. Pretend we got no results.
             []
     end.
@@ -333,10 +334,10 @@ get_user_displayed_groups({User, Host}) ->
                            [eldap_filter:do_sub(State#state.rfilter, [{<<"%u">>, User}])],
                            [GroupAttr]),
     Reply = lists:flatmap(fun (#eldap_entry{attributes = Attrs}) ->
-                                  case eldap_utils:singleton_value(Attrs) of
-                                      {GroupAttr, Value} -> [Value];
-                                      _ -> []
-                                  end
+                              case eldap_utils:singleton_value(Attrs) of
+                                  {GroupAttr, Value} -> [Value];
+                                  _ -> []
+                              end
                           end,
                           Entries),
     lists:usort(Reply).
@@ -349,7 +350,7 @@ get_group_users(Host, Group) ->
     of
         {ok, #group_info{members = Members}}
           when Members /= undefined ->
-            Members;
+              Members;
         _ -> []
     end.
 
@@ -379,15 +380,15 @@ search_group_info(State, Group) ->
     Extractor = case State#state.uid_format_re of
                     <<"">> ->
                         fun (UID) ->
-                                catch eldap_utils:get_user_part(
-                                        UID,
-                                        State#state.uid_format)
+                            catch eldap_utils:get_user_part(
+                                UID,
+                                State#state.uid_format)
                         end;
                     _ ->
                         fun (UID) ->
-                                catch get_user_part_re(
-                                        UID,
-                                        State#state.uid_format_re)
+                            catch get_user_part_re(
+                                UID,
+                                State#state.uid_format_re)
                         end
                 end,
     AuthChecker = case State#state.auth_check of
@@ -406,47 +407,40 @@ search_group_info(State, Group) ->
         LDAPEntries ->
             {GroupDesc, MembersLists} =
                 lists:foldl(
-                  fun (#eldap_entry{attributes = Attrs}, {DescAcc, JIDsAcc}) ->
-                          case
-                              {eldap_utils:get_ldap_attr(State#state.group_attr, Attrs),
-                               eldap_utils:get_ldap_attr(State#state.group_desc, Attrs),
-                               lists:keysearch(State#state.uid, 1, Attrs)}
-                          of
-                              {ID, Desc, {value, {GroupMemberAttr, MemberIn}}}
-                                when ID /= <<"">>, GroupMemberAttr == State#state.uid ->
-                                  Member = case MemberIn of
-                                               [M] ->
-                                                   M;
-                                               _ ->
-                                                   MemberIn
-                                           end,
-                                  JIDs = lists:foldl(
-                                           fun ({ok, UID}, L) ->
-                                                   PUID = jlib:nodeprep(UID),
-                                                   case PUID of
-                                                       error ->
-                                                           L;
-                                                       _ ->
-                                                           case AuthChecker(PUID, Host) of
-                                                               true ->
-                                                                   [{PUID, Host} | L];
-                                                               _ ->
-                                                                   L
-                                                           end
-                                                   end;
-                                               (_, L) -> L
-                                           end,
-                                           [],
-                                           [Extractor(Member)]),
-                                  {Desc, [JIDs | JIDsAcc]};
-                              _ ->
-                                  {DescAcc, JIDsAcc}
-                          end
-                  end,
-                  {Group, []}, LDAPEntries),
-            {ok,
-             #group_info{desc = GroupDesc,
-                         members = lists:usort(lists:flatten(MembersLists))}}
+                    fun (#eldap_entry{attributes = Attrs}, {DescAcc, JIDsAcc}) ->
+                        case
+                            {eldap_utils:get_ldap_attr(State#state.group_attr, Attrs),
+                             eldap_utils:get_ldap_attr(State#state.group_desc, Attrs),
+                             lists:keysearch(State#state.uid, 1, Attrs)}
+                        of
+                            {ID, Desc, {value, {GroupMemberAttr, Members}}}
+                            when ID /= <<"">>, GroupMemberAttr == State#state.uid ->
+                                JIDs = lists:foldl(
+                                    fun ({ok, UID}, L) ->
+                                        PUID = jlib:nodeprep(UID),
+                                        case PUID of
+                                            error ->
+                                                L;
+                                            _ ->
+                                                case AuthChecker(PUID, Host) of
+                                                    true ->
+                                                        [{PUID, Host} | L];
+                                                    _ ->
+                                                        L
+                                                end
+                                        end;
+                                        (_, L) -> L
+                                    end,
+                                    [],
+                                    lists:map(Extractor, Members)),
+                                    {Desc, [JIDs | JIDsAcc]};
+                            _ ->
+                                {DescAcc, JIDsAcc}
+                        end
+                    end,
+                    {Group, []}, LDAPEntries),
+            {ok, #group_info{desc = GroupDesc,
+                             members = lists:usort(lists:flatten(MembersLists))}}
     end.
 
 search_user_name(State, User) ->
